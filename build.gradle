@@ -1,0 +1,66 @@
+plugins {
+    id 'java'
+    id 'com.coditory.integration-test' version '2.2.5' // ✅ Latest as of Sept 2025
+    id 'me.qoomon.git-versioning' version '6.4.4'
+
+}
+allprojects {
+    version = rootProject.version
+}
+
+group = 'org.example'
+version = '1.0-1'
+gitVersioning.apply {
+    refs {
+        branch('.+') {
+            version = '${ref}-SNAPSHOT'
+        }
+        tag('v(?<version>.*)') {
+            version = '${ref.version}'
+        }
+    }
+    rev {
+        version = '${commit}'
+    }
+}
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // JUnit 5 core
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0")
+
+
+    // Optional: JUnit Suite support
+    testImplementation 'org.junit.platform:junit-platform-suite-api'
+    testRuntimeOnly 'org.junit.platform:junit-platform-suite-engine'
+
+    // Integration test deps (optional if same as test)
+//    integrationTestImplementation platform('org.junit:junit-bom:5.10.0')
+//    integrationTestImplementation 'org.junit.jupiter:junit-jupiter-api'
+//    integrationTestRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+
+integrationTest {
+    useJUnitPlatform()
+}
+
+sourceSets {
+    integrationTest {
+        java {
+            srcDirs = ['src/integration/java']
+        }
+        resources {
+            srcDirs = ['src/test/java']
+        }
+    }
+}
+
