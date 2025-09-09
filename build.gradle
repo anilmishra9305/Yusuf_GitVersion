@@ -9,7 +9,7 @@ allprojects {
 }
 
 group = 'org.example'
-version = '1.0-1'
+version = 'oaes-app_1.0.0'
 gitVersioning.apply {
     refs {
         branch('.+') {
@@ -48,6 +48,11 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
 
+tasks.register("printVersion") {
+    doLast {
+        println "Project version is: ${project.version}"
+    }
+}
 
 integrationTest {
     useJUnitPlatform()
