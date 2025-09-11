@@ -12,11 +12,12 @@ group = 'org.example'
 version = '1.0-1'
 gitVersioning.apply {
     refs {
-        branch('.+') {
-            version = '${ref}-SNAPSHOT'
-        }
+
         tag('v(?<version>.*)') {
             version = '${ref.version}'
+        }
+        branch('.+') {
+            version = '${ref}-SNAPSHOT'
         }
     }
     rev {
