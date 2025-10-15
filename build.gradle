@@ -10,18 +10,78 @@ allprojects {
 
 group = 'org.example'
 version = '1.0-1'
+import java.util.Properties
+
+
+
+// 1) Load base semver from version.properties (root of repo)
+def vprops = new Properties()
+file("$rootDir/version.properties").withInputStream { vprops.load(it) }
+def MAJOR = (vprops['version.major'] ?: '0').toString().trim()
+def MINOR = (vprops['version.minor'] ?: '0').toString().trim()
+def TERT  = (vprops['version.tertiary'] ?: '0').toString().trim()
+def BASE  = "${MAJOR}.${MINOR}.${TERT}"
+
+// 2) Declare base version first (required by plugin)
+version = BASE
+
+// 3) Apply qoomon rules (MUST use .apply { ... })
 gitVersioning.apply {
     refs {
-
-        tag('v(?<version>.*)') {
+        // On tag: derive version from the tag text (e.g., 1.0.1)
+        tag('(?<version>\\d+\\.\\d+\\.\\d+)') {
             version = '${ref.version}'
         }
+
+        // master/main: BASE-${byDistance}
+        branch('master') {
+            version = '${version}-${describe.distance}'
+        }
+        branch('main') {
+            version = '${version}-${describe.distance}'
+        }
+
+        // feature/*: BASE-${byDistance+1}-SNAPSHOT
+        // uses numeric placeholder math; "+1" via ".plus.1"
+        branch('feature/.+') {
+            version = '${version}-${describe.distance.plus.1}-SNAPSHOT'
+        }
+
+        // fallback for other branches: snapshot with distance
         branch('.+') {
-            version = '${ref}-SNAPSHOT'
+            version = '${version}-${describe.distance}-SNAPSHOT'
         }
     }
-    rev {
-        version = '${commit}'
+
+    // (optional) consider tags even when on a branch
+    // considerTagsOnBranches = true
+}
+
+// 4) OPTIONAL: for specific modules use major = current year
+def yearMajorProjects = ['api','web','app','ftp','db'] as Set
+subprojects { sub ->
+    if (yearMajorProjects.contains(name)) {
+        def yr     = java.time.Year.now().toString()
+        def curVer = project.version.toString()
+        // Replace the leading BASE with year.major, keep any suffix like "-3" or "-4-SNAPSHOT"
+        def suffix = curVer.replaceFirst("^${java.util.regex.Pattern.quote(BASE)}", "")
+        project.version = "${yr}.${MINOR}.${TERT}${suffix}"
+    }
+}
+
+// Logging so you can see the result quickly
+tasks.register('printVersion') {
+    doLast { println "Computed version: ${project.version}" }
+}
+
+sourceSets {
+    integrationTest {
+        java {
+            srcDirs = ['src/integration/java']
+        }
+        resources {
+            srcDirs = ['src/test/java']
+        }
     }
 }
 repositories {
@@ -54,14 +114,6 @@ integrationTest {
     useJUnitPlatform()
 }
 
-sourceSets {
-    integrationTest {
-        java {
-            srcDirs = ['src/integration/java']
-        }
-        resources {
-            srcDirs = ['src/test/java']
-        }
-    }
-}
+
+
 
